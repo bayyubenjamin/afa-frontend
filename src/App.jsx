@@ -1,64 +1,142 @@
-import { useState } from 'react'
-import { ethers } from 'ethers'
-import { CONTRACT_ADDRESS } from './config'
-import './App.css'
+import React, { useState } from "react";
+import { ethers } from "ethers";
 
-function App() {
-  const [walletAddress, setWalletAddress] = useState('')
-  const [status, setStatus] = useState('')
+const MATCHAIN_CHAIN_ID_HEX = "0x2BA"; // 698 decimal
+const MATCHAIN_RPC_URL = "https://rpc.matchain.io";
+const MATCHAIN_NAME = "Matchain";
+const MATCHAIN_SYMBOL = "BNB";
+const MATCHAIN_EXPLORER = "https://matchscan.io";
 
-  const connectWallet = async () => {
-    if (window.ethereum) {
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' })
-        setWalletAddress(accounts[0])
-        setStatus('Wallet connected!')
-      } catch (err) {
-        setStatus('Wallet connection failed.')
+const TOKEN_CONTRACT_ADDRESS = "0x83DA931DCf4ec72E8E80a97e199D2B8d37803305";
+
+export default function MatchainDapp() {
+  const [account, setAccount] = useState(null);
+  const [txHash, setTxHash] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function connectWallet() {
+    try {
+      if (!window.ethereum) {
+        alert("Please install MetaMask or compatible wallet!");
+        return;
       }
-    } else {
-      setStatus('Install MetaMask dulu!')
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      await provider.send("eth_requestAccounts", []);
+      const signer = provider.getSigner();
+      const address = await signer.getAddress();
+
+      // Switch to Matchain network
+      try {
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: MATCHAIN_CHAIN_ID_HEX }],
+        });
+      } catch (switchError) {
+        if (switchError.code === 4902) {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [
+              {
+                chainId: MATCHAIN_CHAIN_ID_HEX,
+                chainName: MATCHAIN_NAME,
+                rpcUrls: [MATCHAIN_RPC_URL],
+                nativeCurrency: {
+                  name: MATCHAIN_SYMBOL,
+                  symbol: MATCHAIN_SYMBOL,
+                  decimals: 18,
+                },
+                blockExplorerUrls: [MATCHAIN_EXPLORER],
+              },
+            ],
+          });
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: MATCHAIN_CHAIN_ID_HEX }],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+
+      setAccount(address);
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || "Failed to connect wallet");
     }
   }
 
-  const claimReward = async () => {
-    if (!window.ethereum) {
-      setStatus('Wallet tidak ditemukan')
-      return
-    }
-
+  async function claimReward() {
+    setTxHash(null);
+    setError(null);
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum)
-      const signer = await provider.getSigner()
-      const contract = new ethers.Contract(CONTRACT_ADDRESS, [
-        'function claimReward() public',
-      ], signer)
+      if (!window.ethereum) throw new Error("Wallet not connected");
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
 
-      const tx = await contract.claimReward()
-      setStatus('Transaction sent. Waiting...')
-      await tx.wait()
-      setStatus('✅ Reward claimed successfully!')
+      const tokenAbi = [
+        "function claimReward() external",
+        "event Transfer(address indexed from, address indexed to, uint256 value)",
+      ];
+
+      const contract = new ethers.Contract(
+        TOKEN_CONTRACT_ADDRESS,
+        tokenAbi,
+        signer
+      );
+
+      const tx = await contract.claimReward();
+      const receipt = await tx.wait(1);
+
+      setTxHash(receipt.transactionHash);
     } catch (err) {
-      console.error(err)
-      setStatus('❌ Claim failed: ' + (err.reason || err.message))
+      console.error(err);
+      setError(err.message || "Failed to claim reward");
     }
   }
 
   return (
-    <div className="card">
-      <h1>$AFA Token DApp</h1>
-      <p>Wallet: {walletAddress || 'Not Connected'}</p>
-      <button onClick={connectWallet}>
-        {walletAddress ? 'Connected' : 'Connect Wallet'}
-      </button>
-      <br /><br />
-      <button onClick={claimReward} disabled={!walletAddress}>
-        🎁 Claim Reward
-      </button>
-      <p>{status}</p>
+    <div style={{ maxWidth: 500, margin: "auto", padding: 20 }}>
+      <h2>Matchain AirdropForAll DApp</h2>
+
+      {!account ? (
+        <button onClick={connectWallet}>Connect Wallet</button>
+      ) : (
+        <>
+          <p>
+            Connected account: <b>{account}</b>
+          </p>
+          <button onClick={claimReward}>Claim Reward</button>
+        </>
+      )}
+
+      {txHash && (
+        <p>
+          Transaction success!{" "}
+          <a
+            href={`${MATCHAIN_EXPLORER}/tx/${txHash}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            View on Matchscan
+          </a>
+        </p>
+      )}
+
+      {account && (
+        <p>
+          Token contract AFA:{" "}
+          <a
+            href={`${MATCHAIN_EXPLORER}/address/${TOKEN_CONTRACT_ADDRESS}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {TOKEN_CONTRACT_ADDRESS}
+          </a>
+        </p>
+      )}
+
+      {error && <p style={{ color: "red" }}>Error: {error}</p>}
     </div>
-  )
+  );
 }
-
-export default App
-
