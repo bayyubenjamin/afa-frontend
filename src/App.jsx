@@ -4,7 +4,7 @@ import AFA_ABI from "./abi/AFA.json";
 import { CONTRACT_ADDRESS, TOKEN_DECIMALS } from "./config";
 
 const MATCHAIN_PARAMS = {
-  chainId: "0x2BA", // Chain ID 698 dalam format hex
+  chainId: "0x2BA", // 698 in hexadecimal
   chainName: "Matchain",
   nativeCurrency: {
     name: "BNB",
@@ -24,57 +24,54 @@ function App() {
   const [txHash, setTxHash] = useState("");
 
   // Fungsi connect wallet khusus untuk switch ke jaringan Matchain
-const connectWallet = async () => {
-  if (!window.ethereum) {
-    return alert("Install MetaMask dulu bro!");
-  }
-
-  try {
-    // Coba switch ke Matchain
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: MATCHAIN_PARAMS.chainId }],
-    });
-  } catch (switchError) {
-    if (switchError.code === 4902) {
-      // Chain belum ada, coba tambahkan
-      try {
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [MATCHAIN_PARAMS],
-        });
-      } catch (addError) {
-        console.error("Gagal add chain:", addError);
-        return alert("Gagal menambahkan jaringan Matchain ke MetaMask:\n" + addError.message);
-      }
-    } else {
-      console.error("Gagal switch chain:", switchError);
-      return alert("Gagal switch jaringan ke Matchain:\n" + switchError.message);
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      return alert("Install MetaMask dulu bro!");
     }
-  }
 
-  try {
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    setWallet(accounts[0]);
+    try {
+      // Coba switch ke Matchain
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: MATCHAIN_PARAMS.chainId }],
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        // Chain belum ada, tambahkan
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [MATCHAIN_PARAMS],
+          });
+        } catch (addError) {
+          console.error("Gagal add chain:", addError);
+          return alert(
+            "Gagal menambahkan jaringan Matchain ke MetaMask:\n" +
+              addError.message
+          );
+        }
+      } else {
+        console.error("Gagal switch chain:", switchError);
+        return alert(
+          "Gagal switch jaringan ke Matchain:\n" + switchError.message
+        );
+      }
+    }
 
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const afa = new ethers.Contract(CONTRACT_ADDRESS, AFA_ABI, signer);
-    setContract(afa);
-  } catch (err) {
-    console.error("Gagal connect wallet:", err);
-    alert("Gagal menghubungkan wallet:\n" + err.message);
-  }
-};
+    try {
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      setWallet(accounts[0]);
 
-
-    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-    setWallet(accounts[0]);
-
-    const provider = new ethers.BrowserProvider(window.ethereum);
-    const signer = await provider.getSigner();
-    const afa = new ethers.Contract(CONTRACT_ADDRESS, AFA_ABI, signer);
-    setContract(afa);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      const afa = new ethers.Contract(CONTRACT_ADDRESS, AFA_ABI, signer);
+      setContract(afa);
+    } catch (err) {
+      console.error("Gagal connect wallet:", err);
+      alert("Gagal menghubungkan wallet:\n" + err.message);
+    }
   };
 
   const loadData = async () => {
@@ -114,13 +111,18 @@ const connectWallet = async () => {
       <header className="flex items-center justify-between bg-[#0B0B1E] px-5 py-4 border-b border-[#1A1A2E]">
         <div className="flex items-center space-x-3">
           <img
-  src="https://i.imghippo.com/files/bSxL2407Lw.jpeg"
-  alt="Airdrop For All Logo"
-  className="w-10 h-10"
-/>
-          <span className="font-extrabold text-lg select-none">Airdrop For All</span>
+            src="https://i.imghippo.com/files/bSxL2407Lw.jpeg"
+            alt="Airdrop For All Logo"
+            className="w-10 h-10"
+          />
+          <span className="font-extrabold text-lg select-none">
+            Airdrop For All
+          </span>
         </div>
-        <button className="text-white text-3xl focus:outline-none" aria-label="Open menu">
+        <button
+          className="text-white text-3xl focus:outline-none"
+          aria-label="Open menu"
+        >
           <i className="fas fa-bars"></i>
         </button>
       </header>
@@ -128,28 +130,28 @@ const connectWallet = async () => {
       <main className="flex-grow flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
         <div className="relative w-28 h-28 mb-8">
           <img
-  src="https://i.imghippo.com/files/bSxL2407Lw.jpeg"
-  alt="AFA glowing logo"
-  className="w-28 h-28 mx-auto rounded-full"
-/>
-          <div className="absolute inset-0 rounded-full border border-[#6C63FF] opacity-50"></div>
+            src="https://i.imghippo.com/files/bSxL2407Lw.jpeg"
+            alt="AFA glowing logo"
+            className="w-28 h-28 mx-auto rounded-full"
+          />
+          <div className="absolute inset-0 rounded-full border border-[#6C63FF] opacity-50" />
         </div>
 
         <h1 className="text-[#B9B9F9] font-extrabold text-2xl leading-tight max-w-xs mx-auto">
           FREE $AFA ON MATCHAIN
         </h1>
         <p className="text-[#C7C7E9] text-base max-w-md mt-4 mb-10">
-  Follow Telegram channel First!
-  <br />
-  <a
-    href="https://t.me/airdrop4ll"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="text-[#B9B9F9] font-semibold underline"
-  >
-    Airdrop For All
-  </a>
-</p>
+          Follow Telegram channel First!
+          <br />
+          <a
+            href="https://t.me/airdrop4ll"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#B9B9F9] font-semibold underline"
+          >
+            Airdrop For All
+          </a>
+        </p>
 
         <p className="mb-3">
           Wallet: <span className="font-mono">{wallet || "Belum terkoneksi"}</span>
@@ -172,17 +174,27 @@ const connectWallet = async () => {
         </button>
 
         {txHash && (
-          <div className="mt-6 text-sm max-w-md break-all">
-            Transaksi berhasil!  
+          <div className="mt-6 text-sm max-w-md break-words">
+            Transaksi berhasil!
             <a
               href={`https://matchscan.io/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#6C63FF] underline"
+              className="text-[#6C63FF] underline ml-1"
             >
-              Lihat di Explorer
+              Lihat di Matchscan
             </a>
-            <p>Contract: <code>{CONTRACT_ADDRESS}</code></p>
+            <p className="mt-2">
+              Contract:{" "}
+              <a
+                href={`https://matchscan.io/address/${CONTRACT_ADDRESS}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#6C63FF] underline"
+              >
+                {CONTRACT_ADDRESS}
+              </a>
+            </p>
           </div>
         )}
       </main>
