@@ -24,28 +24,49 @@ function App() {
   const [txHash, setTxHash] = useState("");
 
   // Fungsi connect wallet khusus untuk switch ke jaringan Matchain
-  const connectWallet = async () => {
-    if (!window.ethereum) return alert("Install MetaMask dulu bro!");
-    try {
-      await window.ethereum.request({
-        method: "wallet_switchEthereumChain",
-        params: [{ chainId: MATCHAIN_PARAMS.chainId }],
-      });
-    } catch (switchError) {
-      // Jika chain belum ada, add dulu
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: "wallet_addEthereumChain",
-            params: [MATCHAIN_PARAMS],
-          });
-        } catch (addError) {
-          return alert("Gagal menambahkan jaringan Matchain ke MetaMask");
-        }
-      } else {
-        return alert("Gagal switch jaringan ke Matchain");
+const connectWallet = async () => {
+  if (!window.ethereum) {
+    return alert("Install MetaMask dulu bro!");
+  }
+
+  try {
+    // Coba switch ke Matchain
+    await window.ethereum.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: MATCHAIN_PARAMS.chainId }],
+    });
+  } catch (switchError) {
+    if (switchError.code === 4902) {
+      // Chain belum ada, coba tambahkan
+      try {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [MATCHAIN_PARAMS],
+        });
+      } catch (addError) {
+        console.error("Gagal add chain:", addError);
+        return alert("Gagal menambahkan jaringan Matchain ke MetaMask:\n" + addError.message);
       }
+    } else {
+      console.error("Gagal switch chain:", switchError);
+      return alert("Gagal switch jaringan ke Matchain:\n" + switchError.message);
     }
+  }
+
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    setWallet(accounts[0]);
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+    const afa = new ethers.Contract(CONTRACT_ADDRESS, AFA_ABI, signer);
+    setContract(afa);
+  } catch (err) {
+    console.error("Gagal connect wallet:", err);
+    alert("Gagal menghubungkan wallet:\n" + err.message);
+  }
+};
+
 
     const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
     setWallet(accounts[0]);
