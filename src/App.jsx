@@ -154,7 +154,7 @@ function App() {
           <div className="mt-6 text-sm max-w-md break-all">
             Transaksi berhasil!  
             <a
-              href={`https://explorer.matchain.xyz/tx/${txHash}`}
+              href={`https://matchscan.io/tx/${txHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[#6C63FF] underline"
