@@ -4,14 +4,14 @@ import AFA_ABI from "./abi/AFA.json";
 import { CONTRACT_ADDRESS, TOKEN_DECIMALS } from "./config";
 
 const MATCHAIN_PARAMS = {
-  chainId: "0x2BA", // 698
+  chainId: "0x2BA", // Chain ID 698 dalam format hex
   chainName: "Matchain",
-  rpcUrls: ["https://rpc.matchain.io"],
   nativeCurrency: {
     name: "BNB",
     symbol: "BNB",
     decimals: 18,
   },
+  rpcUrls: ["https://rpc.matchain.io"],
   blockExplorerUrls: ["https://matchscan.io"],
 };
 
@@ -23,27 +23,27 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [txHash, setTxHash] = useState("");
 
+  // Fungsi connect wallet khusus untuk switch ke jaringan Matchain
   const connectWallet = async () => {
     if (!window.ethereum) return alert("Install MetaMask dulu bro!");
     try {
-      // Cek dan switch ke Matchain
       await window.ethereum.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: MATCHAIN_PARAMS.chainId }],
       });
-    } catch (error) {
-      if (error.code === 4902) {
-        // Kalau chain belum ada, tambahkan dulu
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [MATCHAIN_PARAMS],
-        });
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: MATCHAIN_PARAMS.chainId }],
-        });
+    } catch (switchError) {
+      // Jika chain belum ada, add dulu
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [MATCHAIN_PARAMS],
+          });
+        } catch (addError) {
+          return alert("Gagal menambahkan jaringan Matchain ke MetaMask");
+        }
       } else {
-        return alert("Gagal switch ke Matchain: " + error.message);
+        return alert("Gagal switch jaringan ke Matchain");
       }
     }
 
@@ -69,8 +69,8 @@ function App() {
       setLoading(true);
       setTxHash("");
       const tx = await contract.claimReward();
-      const receipt = await tx.wait();
-      setTxHash(receipt.hash);
+      setTxHash(tx.hash);
+      await tx.wait();
       alert("Berhasil klaim 1 AFA 🎉");
       loadData();
     } catch (err) {
@@ -85,49 +85,89 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (contract && wallet) {
-      loadData();
-    }
+    if (contract && wallet) loadData();
   }, [contract, wallet]);
 
   return (
-    <div style={{ textAlign: "center", marginTop: 50 }}>
-      <h1>🎁 Airdrop For All</h1>
-      <p>Wallet: {wallet}</p>
-      <p>Saldo AFA: {afaBalance}</p>
-      <p>Klaim: {clicks} / 1000</p>
+    <div className="bg-[#0B0B1E] min-h-screen flex flex-col text-white font-inter">
+      <header className="flex items-center justify-between bg-[#0B0B1E] px-5 py-4 border-b border-[#1A1A2E]">
+        <div className="flex items-center space-x-3">
+          <img
+  src="https://i.imghippo.com/files/bSxL2407Lw.jpeg"
+  alt="Airdrop For All Logo"
+  className="w-10 h-10"
+/>
+          <span className="font-extrabold text-lg select-none">Airdrop For All</span>
+        </div>
+        <button className="text-white text-3xl focus:outline-none" aria-label="Open menu">
+          <i className="fas fa-bars"></i>
+        </button>
+      </header>
 
-      <button onClick={claim} disabled={loading || clicks >= 1000}>
-        {loading ? "Claiming..." : "Klik untuk Klaim 1 AFA"}
-      </button>
+      <main className="flex-grow flex flex-col items-center justify-center px-6 text-center relative overflow-hidden">
+        <div className="relative w-28 h-28 mb-8">
+          <img
+  src="https://i.imghippo.com/files/bSxL2407Lw.jpeg"
+  alt="AFA glowing logo"
+  className="w-28 h-28 mx-auto rounded-full"
+/>
+          <div className="absolute inset-0 rounded-full border border-[#6C63FF] opacity-50"></div>
+        </div>
 
-      {txHash && (
-        <p>
-          TX:{" "}
-          <a
-            href={`https://matchscan.io/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Lihat di Matchscan
-          </a>
+        <h1 className="text-[#B9B9F9] font-extrabold text-2xl leading-tight max-w-xs mx-auto">
+          FREE $AFA ON MATCHAIN
+        </h1>
+        <p className="text-[#C7C7E9] text-base max-w-md mt-4 mb-10">
+  Follow Telegram channel First!
+  <br />
+  <a
+    href="https://t.me/airdrop4ll"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-[#B9B9F9] font-semibold underline"
+  >
+    Airdrop For All
+  </a>
+</p>
+
+        <p className="mb-3">
+          Wallet: <span className="font-mono">{wallet || "Belum terkoneksi"}</span>
         </p>
-      )}
-
-      {wallet && (
-        <p>
-          Smart Contract AFA:{" "}
-          <a
-            href={`https://matchscan.io/address/${CONTRACT_ADDRESS}`}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {CONTRACT_ADDRESS}
-          </a>
+        <p className="mb-3">
+          Balance AFA: <span className="font-mono">{afaBalance}</span>
         </p>
-      )}
+        <p className="mb-5">
+          Claim: <span className="font-mono">{clicks} / 1000</span>
+        </p>
+
+        <button
+          onClick={claim}
+          disabled={loading || clicks >= 1000}
+          className="flex items-center justify-center space-x-3 bg-gradient-to-r from-[#5A5AFD] to-[#9B59B6] text-white text-lg font-medium rounded-xl py-4 px-8 w-full max-w-md disabled:opacity-50"
+        >
+          <i className="fas fa-gift text-xl"></i>
+          <span>{loading ? "Claiming..." : "Claim 1 $AFA Token"}</span>
+          <i className="fas fa-arrow-right text-xl"></i>
+        </button>
+
+        {txHash && (
+          <div className="mt-6 text-sm max-w-md break-all">
+            Transaksi berhasil!  
+            <a
+              href={`https://explorer.matchain.xyz/tx/${txHash}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#6C63FF] underline"
+            >
+              Lihat di Explorer
+            </a>
+            <p>Contract: <code>{CONTRACT_ADDRESS}</code></p>
+          </div>
+        )}
+      </main>
     </div>
   );
 }
 
 export default App;
+
